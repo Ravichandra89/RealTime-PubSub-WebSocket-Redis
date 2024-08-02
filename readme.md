@@ -1,4 +1,4 @@
-# WebSocket - Redis Queue - PUB/SUB
+# WebSocket - Redis Queue - PUB/SUB & Backend Communication
 
 ## Overview
 
@@ -26,15 +26,19 @@ Efficient sticky connections involve grouping users by their geographic location
 
 To handle communication between different WebSocket servers, we use Redis Pub/Sub. This allows servers to publish and subscribe to messages, ensuring that messages can be broadcasted to all relevant users, even if they are connected to different servers.
 
-## Getting Started
+## LeetCode Architecture of Submissions 
 
-### Prerequisites
+### 1. Redis Queue Problem submission Architecture
 
-- Node.js
-- Redis
+<img width="1710" alt="Screenshot 2024-08-02 at 8 21 03 PM" src="https://github.com/user-attachments/assets/0d7f04c9-4a3c-4ef5-adf2-39f171b0983f">
 
-### Installation
+### 2. Web Scoket for Status Sending with persistent Connection
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/WebSocket_Redis_Pub_sub.git
+<img width="1710" alt="Screenshot 2024-08-02 at 8 25 08 PM" src="https://github.com/user-attachments/assets/f5dfb866-10e9-4d3e-a5ef-4cded49a2d87">
+
+### WebSocket + Redis Queue LeetCode Complete problem Submission Architecture
+
+<img width="1710" alt="Screenshot 2024-08-02 at 8 32 54 PM" src="https://github.com/user-attachments/assets/12f1bd2c-b4f1-4357-96f0-7dc5d2a753a1">
+
+
+   
