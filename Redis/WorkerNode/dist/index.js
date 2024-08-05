@@ -10,25 +10,73 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("redis");
-const client = (0, redis_1.createClient)();
-const processSubmission = (submission) => __awaiter(void 0, void 0, void 0, function* () {
-    // Code for processing Submission
-    const { problem_id, code, language } = JSON.parse(submission);
-    console.log(`Processing submission for problemId ${problem_id}...`);
-    console.log(`Code: ${code}`);
-    console.log(`Language: ${language}`);
-    // Simulate processing delay
-    yield new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log(`Finished processing submission for problemId ${problem_id}.`);
+const ws_1 = require("ws");
+const redisClient = (0, redis_1.createClient)();
+const pubClient = (0, redis_1.createClient)();
+const subClient = (0, redis_1.createClient)();
+// Web Socket connection
+const wss = new ws_1.WebSocketServer({ port: 8080 });
+const connection = new Map();
+wss.on("connection", (ws) => {
+    ws.on("message", (message) => {
+        const messageString = message.toString(); // Convert Buffer to string
+        const { userId } = JSON.parse(messageString); // Parse the string as JSON
+        connection.set(userId, ws);
+    });
 });
+const processSubmission = (submission) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(`Received submission: ${submission}`); // Log the submission
+    try {
+        const { problem_id, code, language, userId } = JSON.parse(submission);
+        console.log(`Processing Submission for problemId ${problem_id}...`);
+        console.log(`code ${code}`);
+        console.log(`Language: ${language}`);
+        const res = yield checkProblem(problem_id, code, language);
+        if (res == null) {
+            console.log("Submission Failed");
+        }
+        console.log(`Finished Processing submission for ${problem_id}. Result: ${res}`);
+        // Publish to redis channel
+        const response = JSON.stringify({ problem_id, res, userId });
+        yield pubClient.publish("submissionResult", response);
+    }
+    catch (error) {
+        console.error("Error processing submission:", error);
+    }
+});
+// Check the problem logic
+const checkProblem = (problem_id, code, language) => __awaiter(void 0, void 0, void 0, function* () {
+    // Processing Delay
+    yield new Promise((resolve) => setTimeout(resolve, 1000));
+    // Simulate Result
+    const result = ["Accepted", "TLE", "Rejected"];
+    // For Testing Sending Random Status
+    return result[Math.floor(Math.random() * result.length)];
+});
+// Logic to startWorker
 const startWorker = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield client.connect();
-        console.log("Worker Connected to Redis");
+        yield redisClient.connect();
+        yield pubClient.connect();
+        yield subClient.connect();
+        console.log("Worker Connected with Redis");
+        subClient.subscribe("submissionResults", (message) => {
+            const { userId, res, problem_id } = JSON.parse(message);
+            const ws = connection.get(userId);
+            if (ws) {
+                ws.send(JSON.stringify({ problem_id, res }));
+            }
+        });
         while (true) {
             try {
-                const [key, submission] = yield client.brPop("problems", 0);
-                yield processSubmission(submission);
+                // brpop from Redis Queue
+                const result = yield redisClient.brPop("problems", 0);
+                if (result) {
+                    // Handle the object with `key` and `element` properties
+                    const key = result.key;
+                    const submission = result.element;
+                    yield processSubmission(submission);
+                }
             }
             catch (error) {
                 console.error("Error processing submission:", error);
@@ -39,7 +87,10 @@ const startWorker = () => __awaiter(void 0, void 0, void 0, function* () {
         console.error("Failed to connect to Redis", error);
     }
     finally {
-        yield client.disconnect();
+        yield redisClient.disconnect();
+        yield pubClient.disconnect();
+        yield subClient.disconnect();
     }
 });
+// Start the worker node
 startWorker();

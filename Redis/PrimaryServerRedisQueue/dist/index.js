@@ -22,12 +22,10 @@ const port = process.env.PORT || 3001;
 const client = (0, redis_1.createClient)();
 client.on("error", (err) => console.log("Redis Client Error", err));
 app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const problem_id = req.body.problem_id;
-    const code = req.body.code;
-    const language = req.body.language;
+    const { problem_id, code, language, userId } = req.body;
     try {
-        yield client.lPush("problem", JSON.stringify({ code, language, problem_id }));
-        res.status(200).send("Submission Recived & Stored");
+        yield client.lPush("problems", JSON.stringify({ code, language, problem_id, userId }));
+        res.status(200).send("Submission Received & Stored");
     }
     catch (error) {
         console.error("Redis Queue Error", error);
@@ -38,14 +36,12 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield client.connect();
         console.log("Connected to Redis");
-        app.listen(3000, () => {
+        app.listen(port, () => {
             console.log(`Server is Running on Port ${port}`);
         });
     }
     catch (error) {
-        // Show the error
-        console.error("Failed to Connect Redis", error);
+        console.error("Failed to Connect to Redis", error);
     }
 });
-// Call Start Server function
 startServer();
